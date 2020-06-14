@@ -19,6 +19,8 @@ public class MainForm extends JFrame {
     private JButton editBtn;
     private JButton addBtn;
     private JComboBox discountComboBox;
+    private JButton sortCostDownBtn;
+    private JButton sortCostUpBtn;
     ArrayList<DBStruct.service> serviceList;
 
     public static void main(String arg[]){
@@ -40,17 +42,38 @@ public class MainForm extends JFrame {
         editBtn.addActionListener(e->{
             int index = contentTable.getSelectedRow() - 1;
             if (index >=0){
-                new EditForm(serviceList.get(index));
+                if (checkAdmin()){
+                    new EditForm(serviceList.get(index));
+                    serviceList = loadSevices();
+                    updateTable(serviceList);
+                }
+
             }
-            serviceList = loadSevices();
-            updateTable(serviceList);
+
         });
         addBtn.addActionListener(e -> {
+            if (checkAdmin()) {
+                new EditForm(null);
+                serviceList = loadSevices();
+                updateTable(serviceList);
+            }
 
-            new EditForm(null);
 
-            serviceList = loadSevices();
-            updateTable(serviceList);
+        });
+        removeBtn.addActionListener(e->{
+            int index = contentTable.getSelectedRow() - 1;
+            if (index >=0) {
+                if (checkAdmin()) {
+                    try {
+                        new Database().sql("Delete from service where ID="+serviceList.get(index).id);
+                        serviceList = loadSevices();
+                        updateTable(serviceList);
+                    } catch (SQLException throwables) {
+                        throwables.printStackTrace();
+                    }
+                }
+            }
+
         });
 
 
@@ -87,6 +110,20 @@ public class MainForm extends JFrame {
             updateTable(serviceList);
         });
 
+        sortCostDownBtn.addActionListener(e->{
+            serviceList.sort((o1,o2)->{
+                return  o1.Cost>o2.Cost ? 1: -1;
+            });
+            updateTable(serviceList);
+
+        });
+        sortCostUpBtn.addActionListener(e->{
+            serviceList.sort((o1,o2)->{
+                return  o1.Cost<o2.Cost ? 1: -1;
+            });
+            updateTable(serviceList);
+        });
+
 
     }
 
@@ -115,6 +152,14 @@ public class MainForm extends JFrame {
             tableModel.addRow(new String[]{item.Title,item.Cost+"",priceWithDiscount.intValue()+"",item.Discount*100+"%", new Integer(item.DurationInSeconds/60).intValue() +""});
         }
         contentTable.setModel(tableModel);
+    }
+
+    boolean checkAdmin(){
+        boolean auth = JOptionPane.showInputDialog(null,"Введите пароль администратора","Требуются права администратора",JOptionPane.INFORMATION_MESSAGE).trim().equals("0000");
+        if (!auth){
+            JOptionPane.showMessageDialog(null,"Неверный пароль!","Ошибка",JOptionPane.ERROR_MESSAGE);
+        }
+        return auth;
     }
 
 }
